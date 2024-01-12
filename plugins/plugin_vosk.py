@@ -48,6 +48,7 @@ async def run_vosk():
                 try:
                     logger.debug(f"Распознано в цикле Vosk: '{voice_input_str}'")
                     await core.run_input(input_str=voice_input_str)
+                    await core.run_output(output_str=voice_input_str)
                 except:
                     logger.error(f"Ошибка при обработке распознанного текста: {voice_input_str}", exc_info=True)
 
@@ -61,6 +62,7 @@ async def start(core: Core):
         "default_options": {},
     }
     return manifest
+
 
 async def start_with_options(core: Core, manifest: dict):
     asyncio.run_coroutine_threadsafe(run_vosk(), asyncio.get_running_loop())

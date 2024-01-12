@@ -79,6 +79,7 @@ class Core(JaaCore, metaclass=MetaSingleton):
         self.print_red = lambda txt: cprint(txt, "red")
         self.format_print_key_list = lambda key, value: print(colored(key + ": ", "blue") + ", ".join(value))
         self.on_input = EventObserver()
+        self.on_output = EventObserver()
 
     # def on_input(self, func: callable):
     #     async def wrapper(*args, **kwargs):
@@ -107,6 +108,9 @@ class Core(JaaCore, metaclass=MetaSingleton):
     #
     async def run_input(self, input_str=None):
         await self.on_input.event(self, input_str=input_str, for_filter=input_str)
+
+    async def run_output(self, output_str=None):
+        await self.on_output.event(self, output_str=output_str, for_filter=output_str)
 
     #
     # async def run_output(self, output_str):
