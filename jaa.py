@@ -49,56 +49,55 @@ try:
     from termcolor import cprint
 except Exception as e:
     # not found? making a stub!
-    def cprint(p,color=None):
+    def cprint(p, color=None):
         if color == None:
             print(p)
         else:
-            print(str(color).upper(),p)
+            print(str(color).upper(), p)
 
 version = "2.2.0"
 
+
 class JaaCore:
-    def __init__(self,root_file = __file__):
+    def __init__(self, root_file=__file__):
         self.jaaPluginPrefix = "plugin_"
         self.jaaVersion = version
         self.jaaRootFolder = os.path.dirname(root_file)
-        self.jaaOptionsPath = self.jaaRootFolder+os.path.sep+"options"
+        self.jaaOptionsPath = self.jaaRootFolder + os.path.sep + "options"
         self.jaaShowTracebackOnPluginErrors = False
-        cprint("JAA.PY v{0} class created!".format(version),"blue")
+        cprint("JAA.PY v{0} class created!".format(version), "blue")
 
     # ------------- plugins -----------------
-    def init_plugins(self, list_first_plugins = []):
+    async def init_plugins(self, list_first_plugins=[]):
         self.plugin_manifests = {}
 
         # 1. run first plugins first!
         for modname in list_first_plugins:
-            self.init_plugin(modname)
+            await self.init_plugin(modname)
 
         # 2. run all plugins from plugins folder
         from os import listdir
         from os.path import isfile, join
-        pluginpath = self.jaaRootFolder+"/plugins"
+        pluginpath = self.jaaRootFolder + "/plugins"
         files = [f for f in listdir(pluginpath) if isfile(join(pluginpath, f))]
 
         for fil in files:
             # print fil[:-3]
             if fil.startswith(self.jaaPluginPrefix) and fil.endswith(".py"):
                 modfile = fil[:-3]
-                self.init_plugin(modfile)
+                await self.init_plugin(modfile)
 
-
-
-    def init_plugin(self,modname):
+    async def init_plugin(self, modname):
         # import
         try:
-            mod = self.import_plugin("plugins."+modname)
+            mod = await self.import_plugin("plugins." + modname)
         except Exception as e:
             self.print_error("JAA PLUGIN ERROR: {0} error on load: {1}".format(modname, str(e)))
             return False
 
         # run start function
         try:
-            res = mod.start(self)
+            res = await mod.start(self)
         except Exception as e:
             self.print_error("JAA PLUGIN ERROR: {0} error on start: {1}".format(modname, str(e)))
             return False
@@ -109,15 +108,14 @@ class JaaCore:
                 # saved options try to read
                 saved_options = {}
                 try:
-                    with open(self.jaaOptionsPath+'/'+modname+'.json', 'r', encoding="utf-8") as f:
+                    with open(self.jaaOptionsPath + '/' + modname + '.json', 'r', encoding="utf-8") as f:
                         s = f.read()
                     saved_options = json.loads(s)
-                    #print("Saved options", saved_options)
+                    # print("Saved options", saved_options)
                 except Exception as e:
                     pass
 
                 res["default_options"]["v"] = res["version"]
-
 
                 # only string needs Python 3.5
                 final_options = {**res["default_options"], **saved_options}
@@ -125,22 +123,22 @@ class JaaCore:
                 # if no option found or version is differ from mod version
                 if len(saved_options) == 0 or saved_options["v"] != res["version"]:
                     final_options["v"] = res["version"]
-                    self.save_plugin_options(modname,final_options)
+                    self.save_plugin_options(modname, final_options)
 
                 res["options"] = final_options
 
                 try:
-                    res2 = mod.start_with_options(self,res)
+                    res2 = await mod.start_with_options(self, res)
                     if res2 != None:
                         res = res2
                 except Exception as e:
-                    self.print_error("JAA PLUGIN ERROR: {0} error on start_with_options processing: {1}".format(modname, str(e)))
+                    self.print_error(
+                        "JAA PLUGIN ERROR: {0} error on start_with_options processing: {1}".format(modname, str(e)))
                     return False
 
             except Exception as e:
                 self.print_error("JAA PLUGIN ERROR: {0} error on options processing: {1}".format(modname, str(e)))
                 return False
-
 
         # processing plugin manifest
         try:
@@ -148,8 +146,7 @@ class JaaCore:
             plugin_name = res["name"]
             plugin_version = res["version"]
 
-
-            self.process_plugin_manifest(modname,res)
+            self.process_plugin_manifest(modname, res)
 
         except Exception as e:
             print("JAA PLUGIN ERROR: {0} error on process startup options: {1}".format(modname, str(e)))
@@ -157,18 +154,18 @@ class JaaCore:
 
         self.plugin_manifests[modname] = res
 
-        self.on_succ_plugin_start(modname,plugin_name,plugin_version)
+        self.on_succ_plugin_start(modname, plugin_name, plugin_version)
         return True
 
     def on_succ_plugin_start(self, modname, plugin_name, plugin_version):
         cprint("JAA PLUGIN: {1} {2} ({0}) started!".format(modname, plugin_name, plugin_version))
 
-    def print_error(self,p):
-        cprint(p,"red")
+    def print_error(self, p):
+        cprint(p, "red")
         if self.jaaShowTracebackOnPluginErrors:
             traceback.print_exc()
 
-    def import_plugin(self, module_name):
+    async def import_plugin(self, module_name):
         import sys
 
         __import__(module_name)
@@ -177,36 +174,36 @@ class JaaCore:
             return sys.modules[module_name]
         return None
 
-    def save_plugin_options(self,modname,options):
+    def save_plugin_options(self, modname, options):
         # check folder exists
         if not os.path.exists(self.jaaOptionsPath):
             os.makedirs(self.jaaOptionsPath)
 
         str_options = json.dumps(options, sort_keys=True, indent=4, ensure_ascii=False)
-        with open(self.jaaOptionsPath+'/'+modname+'.json', 'w', encoding="utf-8") as f:
+        with open(self.jaaOptionsPath + '/' + modname + '.json', 'w', encoding="utf-8") as f:
             f.write(str_options)
             f.close()
 
     # process manifest must be overrided in inherit class
-    def process_plugin_manifest(self,modname,manifest):
+    def process_plugin_manifest(self, modname, manifest):
         print("JAA PLUGIN: {0} manifest dummy procession (override 'process_plugin_manifest' function)".format(modname))
         return
 
-    def plugin_manifest(self,pluginname):
+    def plugin_manifest(self, pluginname):
         if pluginname in self.plugin_manifests:
             return self.plugin_manifests[pluginname]
         return {}
 
-    def plugin_options(self,pluginname):
+    def plugin_options(self, pluginname):
         manifest = self.plugin_manifest(pluginname)
         if "options" in manifest:
             return manifest["options"]
         return None
 
     # ------------ gradio stuff --------------
-    def gradio_save(self,pluginname):
+    def gradio_save(self, pluginname):
         print("Saving options for {0}!".format(pluginname))
-        self.save_plugin_options(pluginname,self.plugin_options(pluginname))
+        self.save_plugin_options(pluginname, self.plugin_options(pluginname))
 
     def gradio_upd(self, pluginname, option, val):
         options = self.plugin_options(pluginname)
@@ -221,9 +218,10 @@ class JaaCore:
                 pass
         else:
             options[option] = val
-        print(option,val,options)
+        print(option, val, options)
 
-    def gradio_render_settings_interface(self, title:str="Settings manager", required_fields_to_show_plugin:list=["default_options"]):
+    def gradio_render_settings_interface(self, title: str = "Settings manager",
+                                         required_fields_to_show_plugin: list = ["default_options"]):
         import gradio as gr
 
         with gr.Blocks() as gr_interface:
@@ -242,40 +240,38 @@ class JaaCore:
 
                 if is_show_plugin:
                     with gr.Tab(pluginname):
-                        gr.Markdown("## {0} v{1}".format(manifest["name"],manifest["version"]))
+                        gr.Markdown("## {0} v{1}".format(manifest["name"], manifest["version"]))
                         if manifest.get("description") is not None:
                             gr.Markdown(manifest.get("description"))
 
                         if manifest.get("url") is not None:
                             gr.Markdown("**URL:** [{0}]({0})".format(manifest.get("url")))
 
-
                         if "options" in manifest:
                             options = manifest["options"]
-                            if len(options) > 1: # not only v
+                            if len(options) > 1:  # not only v
                                 text_button = gr.Button("Save options".format(pluginname))
-                                #options_int_list = []
+                                # options_int_list = []
                                 for option in options:
 
-                                    #gr.Label(label=option)
+                                    # gr.Label(label=option)
                                     if option != "v":
                                         val = options[option]
                                         label = option
 
                                         if manifest.get("options_label") is not None:
                                             if manifest.get("options_label").get(option) is not None:
-                                                label = option+": "+manifest.get("options_label").get(option)
+                                                label = option + ": " + manifest.get("options_label").get(option)
 
-
-                                        if isinstance(val, (bool, )):
-                                            gr_elem = gr.Checkbox(value=val,label=label)
-                                        elif isinstance(val, (dict,list)):
+                                        if isinstance(val, (bool,)):
+                                            gr_elem = gr.Checkbox(value=val, label=label)
+                                        elif isinstance(val, (dict, list)):
                                             import json
-                                            gr_elem = gr.Textbox(value=json.dumps(val,ensure_ascii=False), label=label)
+                                            gr_elem = gr.Textbox(value=json.dumps(val, ensure_ascii=False), label=label)
                                         else:
                                             gr_elem = gr.Textbox(value=val, label=label)
 
-                                        def handler(x,pluginname=pluginname,option=option):
+                                        def handler(x, pluginname=pluginname, option=option):
                                             self.gradio_upd(pluginname, option, x)
 
                                         gr_elem.change(handler, gr_elem, None)
@@ -283,20 +279,20 @@ class JaaCore:
                                 def handler_save(pluginname=pluginname):
                                     self.gradio_save(pluginname)
 
-                                text_button.click(handler_save,inputs=None,outputs=None)
+                                text_button.click(handler_save, inputs=None, outputs=None)
                         else:
                             gr.Markdown("_No options for this plugin_")
 
         return gr_interface
 
 
-def load_options(options_file=None,py_file=None,default_options={}):
+def load_options(options_file=None, py_file=None, default_options={}):
     # 1. calculating options filename
     if options_file == None:
         if py_file == None:
             raise Exception('JAA: Options or PY file is not defined, cant calc options filename')
         else:
-            options_file = py_file[:-3]+'.json'
+            options_file = py_file[:-3] + '.json'
 
     # 2. try to read saved options
     saved_options = {}
@@ -304,7 +300,7 @@ def load_options(options_file=None,py_file=None,default_options={}):
         with open(options_file, 'r', encoding="utf-8") as f:
             s = f.read()
         saved_options = json.loads(s)
-        #print("Saved options", saved_options)
+        # print("Saved options", saved_options)
     except Exception as e:
         pass
 
@@ -320,7 +316,7 @@ def load_options(options_file=None,py_file=None,default_options={}):
     # 5. if no option file found or hash was from other default options
     if len(saved_options) == 0 or not ("hash" in saved_options.keys()) or saved_options["hash"] != hash:
         final_options["hash"] = hash
-        #self.save_plugin_options(modname,final_options)
+        # self.save_plugin_options(modname,final_options)
 
         # saving in file
         str_options = json.dumps(final_options, sort_keys=True, indent=4, ensure_ascii=False)
@@ -329,6 +325,7 @@ def load_options(options_file=None,py_file=None,default_options={}):
             f.close()
 
     return final_options
+
 
 """
 The MIT License (MIT)
