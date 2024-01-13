@@ -1,10 +1,10 @@
 from core import Core
-import keyboard
+import pyautogui
 
 
 async def start(core: Core):
     manifest = {
-        "name": "Плагин медиаклавишь",
+        "name": "Плагин медиаклавиш",
         "version": "1.0",
         "require_online": False,
 
@@ -17,5 +17,5 @@ async def start_with_options(core: Core, manifest: dict):
     pass
 
 
-def press_key(key_name: str):
-    keyboard.press_and_release(key_name)
+def press_hotkey_pyautogui(hotkey: str):
+    pyautogui.hotkey(hotkey)

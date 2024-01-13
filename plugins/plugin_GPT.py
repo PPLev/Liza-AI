@@ -1,4 +1,5 @@
 import inspect
+import json
 import os
 import requests
 
@@ -26,7 +27,7 @@ async def start_with_options(core: Core, manifest: dict):
 def get_plugin_funcs():
     func_list = {}
     for plugin_name in os.listdir("plugins"):
-        if not __file__.endswith(plugin_name):
+        if not __file__.endswith(plugin_name) and "__pycache__" not in plugin_name:
             import_name = f"plugins.{plugin_name.split('.py')[0]}"
             __import__(import_name)
             mod = sys.modules[import_name]
@@ -39,7 +40,7 @@ def get_plugin_funcs():
                 }
             )
             for func in func_list[import_name].keys():
-                func_list[import_name][func] = inspect.getfullargspec(func_list[import_name][func]).annotations
+                func_list[import_name][func] = str(inspect.getfullargspec(func_list[import_name][func]).annotations)
     return func_list
 
 
@@ -49,16 +50,15 @@ def ask_gpt(input_str: str):
     Age 21
     Female
     Personality: Feels like a robot, but behaves more humanely. Works as {{user}}'s assistant and follows all his instructions. Does not like empty talk, but prefers commands or orders.
-    Description: When {{user}} asks to do something, {{char}} always tries to do it as best as possible and talks about his failures, which are incredibly rare. Answers to questions are very brief and strictly to the point. Does not express emotions until {{user}} asks for it."
-"""
+    Description: When {{user}} asks to do something, {{char}} always tries to do it as best as possible and talks about his failures, which are incredibly rare. When {{char}} answers, her answers to questions do not contain unnecessary information. Does not express emotion unless {{user}} asks for it."""
     prompt = f"""
 У меня есть список функций для разных модулей python:
-{get_plugin_funcs()}
+{json.dumps(get_plugin_funcs(), indent=2)}
 В списке указаны модули и их функции. Для каждой функции указаны их аргументы.
 Тебе нужно определить какой модуль и какую функцию модуля следует использовать.
-Нужно выполнить команду "{input_str}"
+Нужно выполнить инструкцию: "{input_str}", с помощью модулей и их функций.
 В ответ тебе нужно написать только строку в формате json.
-Формат ответа должен соответствовать такому формату (пример):
+Формат ответа должен соответствовать такому формату (пример "включи мультик"):
 {{
     "module": "plugins.plugin_player",
     "function": "play_file",
@@ -66,7 +66,8 @@ def ask_gpt(input_str: str):
     "file_name": "move.mp4"
 }}
 В начале идет название плагина, затем названия аргументов и их значения.
-Не пиши ничего кроме json в ответе. Строго только json и ничего кроме json.
+Все данные тебе нужно указать в зависимости от того, какая команда поступила от меня.
+Важно: не пиши ничего кроме json в ответе. Строго только json и ничего кроме json.
 """
 
 
@@ -75,6 +76,14 @@ def ask_gpt(input_str: str):
     headers = {
         "Content-Type": "application/json"
     }
+
+    # translate
+    translated = requests.get(
+        url="http://127.0.0.1:4990/translate",
+        headers=headers,
+        params={"text": prompt, "from_lang": "ru", "to_lang": "en"}
+    )
+    prompt = translated.json()["result"]
 
     data = {
         "mode": "chat",
@@ -86,5 +95,14 @@ def ask_gpt(input_str: str):
 
     response = requests.post(url, headers=headers, json=data, verify=False)
     assistant_message = response.json()['choices'][0]['message']['content']
-    print(assistant_message)
+    assistant_message = "{" + assistant_message.split("{")[1]
+    assistant_message = assistant_message.split("}")[0] + "}"
+    json_data = json.loads(assistant_message)
+
+    module = json_data.pop("module")
+    function = json_data.pop("function")
+
+    mod = sys.modules[module]
+    func = vars(mod).get(function)
+    func(**json_data)
 
