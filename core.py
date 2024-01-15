@@ -68,7 +68,6 @@ class EventObserver:
 
 
 class Core(JaaCore, metaclass=MetaSingleton):
-
     def __init__(self):
         super().__init__()
 
@@ -76,6 +75,7 @@ class Core(JaaCore, metaclass=MetaSingleton):
         self.format_print_key_list = lambda key, value: print(colored(key + ": ", "blue") + ", ".join(value))
         self.on_input = EventObserver()
         self.on_output = EventObserver()
+
 
     async def run_input(self, input_str=None):
         await self.on_input.event(self, input_str=input_str, for_filter=input_str)
@@ -86,9 +86,12 @@ class Core(JaaCore, metaclass=MetaSingleton):
     async def init_with_plugins(self):
         await self.init_plugins()
 
-    async def start_loop(self):
+    async def _looping(self):
         while True:
             await asyncio.sleep(0)
+
+    async def start_loop(self):
+        asyncio.run_coroutine_threadsafe(self._looping(), asyncio.get_running_loop())
 
 
 core = Core()

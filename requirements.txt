@@ -17,3 +17,5 @@ magic-filter==1.0.12
 PyAudio==0.2.14
 torch==2.1.2
 urllib3==2.1.0
+keyboard==0.13.5
+Pyrogram==2.0.106
