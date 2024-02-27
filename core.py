@@ -1,4 +1,6 @@
 import asyncio
+import os
+import sys
 
 from magic_filter import MagicFilter
 from termcolor import cprint, colored
@@ -9,7 +11,7 @@ F = MagicFilter()
 version = "0.0.1"
 
 logging.basicConfig(format="%(asctime)s %(levelname)s %(message)s",
-                    level=logging.DEBUG)
+                    level=logging.INFO)
 
 
 class NotFoundFilerTextError(BaseException):
@@ -51,12 +53,12 @@ class EventObserver:
                         raise NotFoundFilerTextError
 
                     if filt.resolve(for_filter):
-                        await func(*args, **kwargs)
+                        asyncio.run_coroutine_threadsafe(func(*args, **kwargs), asyncio.get_event_loop())
             else:
                 async def wrapper_(*args, **kwargs):
                     if "for_filter" in kwargs:
                         kwargs.pop("for_filter")
-                    await func(*args, **kwargs)
+                    asyncio.run_coroutine_threadsafe(func(*args, **kwargs), asyncio.get_event_loop())
 
             self.callbacks.append(wrapper_)
 
@@ -76,29 +78,29 @@ class Core(JaaCore, metaclass=MetaSingleton):
         self.on_input = EventObserver()
         self.on_output = EventObserver()
 
-
     async def run_input(self, input_str=None):
         await self.on_input.event(self, input_str=input_str, for_filter=input_str)
 
     async def run_output(self, output_str=None):
         await self.on_output.event(self, output_str=output_str, for_filter=output_str)
 
-    async def init_with_plugins(self):
-        await self.init_plugins()
-
-    async def _looping(self):
+    @staticmethod
+    async def start_loop():
         while True:
             await asyncio.sleep(0)
 
-    async def start_loop(self):
-        asyncio.run_coroutine_threadsafe(self._looping(), asyncio.get_running_loop())
+    @staticmethod
+    async def reboot():
+        # No recommend
+        python = sys.executable
+        os.execl(python, python, *sys.argv)
 
 
 core = Core()
 
 
 async def main():
-    await core.init_with_plugins()
+    await core.init_plugins()
     await core.start_loop()
 
 

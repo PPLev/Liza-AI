@@ -1,9 +1,9 @@
 import asyncio
 import json
 
-from pyrogram import Client
+from pyrogram import Client, compose
 
-from core import Core
+from core import Core, version
 
 core = Core()
 
@@ -20,9 +20,8 @@ async def start(core: Core):
 
         "default_options": {
             "client": {  # to get this data - use this link: https://my.telegram.org/auth
-                "name": "bot1234",
-                "api_id": "12345678",
-                "api_hash": "abcd123510b3412349d123a871237b10"
+                "api_id": "3648362",
+                "api_hash": "cacd564510b3498349d867a878557b19"
             },
             "users": {  # username: aliases
                 "farirus": ["Петька", "петр", "петя"]
@@ -36,18 +35,32 @@ async def start_with_options(core: Core, manifest: dict):
     global client, users
 
     client = Client(
-        name=manifest["options"]["client"]["name"],
+        name="tg_user",
         api_id=manifest["options"]["client"]["api_id"],
         api_hash=manifest["options"]["client"]["api_hash"],
+        app_version=version,
+        device_model="Liza-AI",
+        system_version="Assistant"
     )
     users = manifest["options"]["users"]
 
-    # TODO: fix client start
-    # await client.run()  # Not work(
+    async def start_client():
+        await compose([client])
+
+    asyncio.run_coroutine_threadsafe(start_client(), asyncio.get_event_loop())
 
 
+def _client_wrapper(func: callable):
+    async def wrapper(*args, **kwargs):
+        await client.start()
+        await func(*args, **kwargs)
+        await client.stop()
+
+    return wrapper
+
+
+@_client_wrapper
 async def _send_message(user: str, message: str):
-    global client
     message = await core.translate(text=message, from_lang="en", to_lang="ru")
     async with client:
         await client.send_message(chat_id=user, text=message)

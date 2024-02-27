@@ -46,7 +46,7 @@ async def run_vosk():
             if voice_input_str != "" and voice_input_str is not None:
                 # Если что-то распознали
                 try:
-                    logger.debug(f"Распознано в цикле Vosk: '{voice_input_str}'")
+                    logger.info(f"Распознано в цикле Vosk: '{voice_input_str}'")
                     await core.run_input(input_str=voice_input_str)
                     await core.run_output(output_str=voice_input_str)
                 except:

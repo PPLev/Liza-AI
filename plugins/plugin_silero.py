@@ -47,7 +47,7 @@ async def _say_silero(core: Core, output_str):
 
     say_str = output_str.replace("…", "...")
 
-    logger.debug(f"Генерация аудио для {say_str}")
+    logger.info(f"Генерация аудио для '{say_str}'")
     audio = silero_model.apply_tts(text=say_str,
                                    speaker="xenia",
                                    sample_rate=24000)
