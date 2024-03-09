@@ -44,13 +44,8 @@ async def run_vosk():
             recognized_data = json.loads(recognized_data)
             voice_input_str = recognized_data["text"]
             if voice_input_str != "" and voice_input_str is not None:
-                # Если что-то распознали
-                try:
-                    logger.info(f"Распознано в цикле Vosk: '{voice_input_str}'")
-                    await core.run_input(input_str=voice_input_str)
-                    await core.run_output(output_str=voice_input_str)
-                except:
-                    logger.error(f"Ошибка при обработке распознанного текста: {voice_input_str}", exc_info=True)
+                logger.info(f"Распознано Vosk: '{voice_input_str}'")
+                await core.run_input(input_str=voice_input_str)
 
 
 async def start(core: Core):

@@ -27,18 +27,6 @@ class MetaSingleton(type):
         return cls._instances[cls]
 
 
-class Filter:
-    def __init__(self, filt: MagicFilter):
-        self.filt = filt
-
-    def __call__(self, fn):
-        @self.filt.cast
-        def wrapper(*args, **kwargs):
-            return fn(*args, **kwargs)
-
-        return wrapper
-
-
 class EventObserver:
     def __init__(self):
         self.callbacks = []
