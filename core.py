@@ -67,10 +67,10 @@ class Core(JaaCore, metaclass=MetaSingleton):
         self.on_output = EventObserver()
 
     async def run_input(self, input_str=None):
-        await self.on_input.event(self, input_str=input_str, for_filter=input_str)
+        await self.on_input.event(core=self, input_str=input_str, for_filter=input_str)
 
     async def run_output(self, output_str=None):
-        await self.on_output.event(self, output_str=output_str, for_filter=output_str)
+        await self.on_output.event(core=self, output_str=output_str, for_filter=output_str)
 
     @staticmethod
     async def start_loop():

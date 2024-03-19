@@ -6,14 +6,17 @@ from typing import Coroutine
 
 import requests
 
-from core import Core
+from core import Core, F
 import sys
+
+from utils.custom_filters import levenshtein_filter
 
 core = Core()
 
 gpt_url = ""
 use_onerig_traslater = False
 onerig_traslater_url = ""
+
 
 async def start(core: Core):
     manifest = {
@@ -52,13 +55,15 @@ def get_plugin_funcs():
                 {
                     import_name: {
                         name: obj for (name, obj) in vars(mod).items()
-                        if hasattr(obj, "__class__") and obj.__class__.__name__ == "function" and not name.startswith("_")
+                        if
+                        hasattr(obj, "__class__") and obj.__class__.__name__ == "function" and not name.startswith("_")
                     }
                 }
             )
             for func in func_list[import_name].keys():
                 func_list[import_name][func] = str(inspect.getfullargspec(func_list[import_name][func]).annotations)
     return func_list
+
 
 async def _translater(text: str, from_lang: str, to_lang: str):
     global use_onerig_traslater, onerig_traslater_url

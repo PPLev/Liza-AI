@@ -1,5 +1,7 @@
+import asyncio
 import logging
 import os
+import time
 
 import sounddevice
 import torch
@@ -27,7 +29,6 @@ async def start_with_options(core: Core, manifest: dict):
     pass
 
 
-@core.on_output.register()
 async def _say_silero(core: Core, output_str):
     global silero_model
     if silero_model is None:  # Подгружаем модель если не подгрузили ранее
@@ -52,3 +53,14 @@ async def _say_silero(core: Core, output_str):
                                    sample_rate=24000)
 
     sounddevice.play(audio, samplerate=24000)
+
+
+@core.on_output.register()
+async def say_silero(core: Core = None, output_str=None):
+    await _say_silero(core, output_str)
+
+
+# @core.on_input.register()
+# async def say_all(core: Core = None, input_str=None):
+#     if core and input_str:
+#         await _say_silero(core, input_str)
