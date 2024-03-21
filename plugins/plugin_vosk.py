@@ -3,6 +3,7 @@ import json
 import os
 import sys
 
+import sounddevice
 import vosk
 
 from core import Core
@@ -18,19 +19,28 @@ async def run_vosk():
     """
     Распознование библиотекой воск
     """
+    #:TODO настройка устройства вывода потом переписать
+    # sounddevice.default.device = (1, None)
+    # dev_out = sounddevice.query_devices(kind="input")
+    # print(dev_out)
+    # print(sounddevice.check_output_settings())
+
     pa = pyaudio.PyAudio()
     stream = pa.open(format=pyaudio.paInt16,
                      channels=1,
+                     input_device_index=1,
                      rate=44100,
                      input=True,
                      frames_per_buffer=8000)
 
-    if not os.path.isdir("model"):
+    print(os.path.dirname("models/vosk/vosk-model-small-ru-0.22"))
+    print(os.path.isdir("models/vosk/vosk-model-small-ru-0.22"))
+    if not os.path.isdir("models/vosk."):
         logger.warning("Папка модели воск не найдена\n"
                        "Please download a model for your language from https://alphacephei.com/vosk/models")
         sys.exit(0)
 
-    model = vosk.Model("model")  # Подгружаем модель
+    model = vosk.Model("models/vosk/vosk-model-small-ru-0.22")  # Подгружаем модель
     rec = vosk.KaldiRecognizer(model, 44100)
 
     logger.debug("Запуск распознователя речи vosk вход в цикл")
@@ -38,8 +48,11 @@ async def run_vosk():
     while True:
         await asyncio.sleep(0.01)
 
+
         data = stream.read(8000)
         if rec.AcceptWaveform(data):
+            logger.info('Слушаю:')
+
             recognized_data = rec.Result()
             recognized_data = json.loads(recognized_data)
             voice_input_str = recognized_data["text"]
