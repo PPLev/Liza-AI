@@ -18,6 +18,38 @@ use_onerig_traslater = False
 onerig_traslater_url = ""
 
 
+class GPT:
+    def __init__(self, model: str, token: str = None, base_url: str = None):
+        self.model = model
+        self.token = token
+        self.base_url = base_url
+
+    async def ask(self, prompt: str):
+        context_prompt = f"""{{char}} is (Lisa)
+        Age 21
+        Female
+        Personality: Feels like a robot, but behaves more humanely. Works as {{user}}'s assistant and follows all his instructions. Does not like empty talk, but prefers commands or orders.
+        Description: When {{user}} asks to do something, {{char}} always tries to do it as best as possible and talks about his failures, which are incredibly rare. When {{char}} answers, her answers to questions do not contain unnecessary information. Does not express emotion unless {{user}} asks for it."""
+
+        data = {
+            "mode": "chat",
+            "messages": [
+                {"role": "system", "content": context_prompt},
+                {"role": "user", "content": prompt}
+            ]
+        }
+        if self.model:
+            data.update({"model": self.model})
+
+        headers = {"Content-Type": "application/json"}
+        if self.token:
+            headers.update({"Authorization": f"Bearer {self.token}"})
+
+        response = requests.post(f"{self.base_url}chat/completions", headers=headers, json=data, verify=False)
+        assistant_message = response.json()['choices'][0]['message']['content']
+        return assistant_message
+
+
 async def start(core: Core):
     manifest = {
         "name": "Плагин GPT",
@@ -25,7 +57,12 @@ async def start(core: Core):
         "require_online": False,
 
         "default_options": {
-            "gpt_url": "http://127.0.0.1:5000/v1/chat/completions",
+            "openai_completable": {
+                "base_url": "http://127.0.0.1:5000/v1/",
+                "model": None,
+                "token": None,
+            },
+            "use_custom_base": True,
             "use_onerig_traslater": False,
             "onerig_traslater_url": "http://127.0.0.1:4990/translate"
         },
@@ -34,14 +71,12 @@ async def start(core: Core):
 
 
 async def start_with_options(core: Core, manifest: dict):
-    global gpt_url, use_onerig_traslater, onerig_traslater_url
+    base_url = manifest["options"]["openai_completable"]["base_url"]
+    model = manifest["options"]["openai_completable"]["model"]
+    token = manifest["options"]["openai_completable"]["token"]
+    use_custom_base = manifest["options"]["use_custom_base"]
 
-    gpt_url = manifest["options"]["gpt_url"]
-    use_onerig_traslater = manifest["options"]["use_onerig_traslater"]
-    onerig_traslater_url = manifest["options"]["onerig_traslater_url"]
-
-    core.ask_gpt = ask_gpt
-    core.translate = _translater
+    core.gpt = GPT(model=model, token=token, base_url=base_url if use_custom_base else "https://api.openai.com/v1")
 
 
 def get_plugin_funcs():
@@ -56,7 +91,7 @@ def get_plugin_funcs():
                     import_name: {
                         name: obj for (name, obj) in vars(mod).items()
                         if
-                        hasattr(obj, "__class__") and obj.__class__.__name__ == "function" and not name.startswith("_")
+                        hasattr(obj, "__class__") and obj.__class__.__name__ == "function" and not name.startswith("_") and not name in ["start_with_options", "start"]
                     }
                 }
             )
@@ -82,39 +117,12 @@ async def _translater(text: str, from_lang: str, to_lang: str):
     return text
 
 
-async def ask_gpt(prompt: str):
-    global gpt_url
-    context_prompt = f"""{{char}} is (Lisa)
-    Age 21
-    Female
-    Personality: Feels like a robot, but behaves more humanely. Works as {{user}}'s assistant and follows all his instructions. Does not like empty talk, but prefers commands or orders.
-    Description: When {{user}} asks to do something, {{char}} always tries to do it as best as possible and talks about his failures, which are incredibly rare. When {{char}} answers, her answers to questions do not contain unnecessary information. Does not express emotion unless {{user}} asks for it."""
-
-    headers = {
-        "Content-Type": "application/json"
-    }
-
-    prompt = await core.translate(text=prompt, from_lang="ru", to_lang="en")
-
-    data = {
-        "mode": "chat",
-        "messages": [
-            {"role": "system", "content": context_prompt},
-            {"role": "user", "content": prompt}
-        ]
-    }
-
-    response = requests.post(gpt_url, headers=headers, json=data, verify=False)
-    assistant_message = response.json()['choices'][0]['message']['content']
-    return assistant_message
-
-
 @core.on_input.register()
-async def _ask_gpt(core: Core, input_str: str):
+async def _ask_gpt(core: Core = None, input_str=None):
     prompt = f"""
-У меня есть список функций для разных модулей python:
+У меня есть список модулей и функций python:
 {json.dumps(get_plugin_funcs(), indent=2)}
-В списке указаны модули и их функции. Для каждой функции указаны их аргументы.
+В списке указаны модули и их функции. Для каждой функции указаны её аргументы.
 Тебе нужно определить какой модуль и какую функцию модуля следует использовать.
 Нужно выполнить инструкцию: "{input_str}", с помощью модулей и их функций.
 В ответ тебе нужно написать только строку в формате json.
@@ -125,12 +133,13 @@ async def _ask_gpt(core: Core, input_str: str):
     "file_path": "/mooves/cartoons",
     "file_name": "move.mp4"
 }}
-В начале идет название плагина, затем названия аргументов и их значения.
+В начале идет название плагина, далее название функции, и затем названия аргументов и их значения если они нужны.
 Все данные тебе нужно указать в зависимости от того, какая команда поступила от меня.
+Иногда сдедует передать инструкцию в следующий плагин целиком.
 Важно: не пиши ничего кроме json в ответе. Строго только json и ничего кроме json.
 """
 
-    assistant_message = await core.ask_gpt(prompt=prompt)
+    assistant_message = await core.gpt.ask(prompt=prompt)
 
     assistant_message = "{" + assistant_message.split("{")[1]
     assistant_message = assistant_message.split("}")[0] + "}"

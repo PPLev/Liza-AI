@@ -84,10 +84,8 @@ class Core(JaaCore, metaclass=MetaSingleton):
         os.execl(python, python, *sys.argv)
 
 
-core = Core()
-
-
 async def main():
+    core = Core()
     await core.init_plugins()
     await core.start_loop()
 

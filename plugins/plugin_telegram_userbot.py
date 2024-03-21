@@ -1,7 +1,8 @@
 import asyncio
 import json
 
-from pyrogram import Client, compose
+from pyrogram import Client
+from pyrogram import compose as _compose
 
 from core import Core, version
 
@@ -45,8 +46,9 @@ async def start_with_options(core: Core, manifest: dict):
     users = manifest["options"]["users"]
 
     async def start_client():
-        await compose([client])
+        await _compose([client])
 
+    # TODO: Сделать блокировку при первом входе для ввода данных телеграм
     asyncio.run_coroutine_threadsafe(start_client(), asyncio.get_event_loop())
 
 
@@ -59,14 +61,13 @@ def _client_wrapper(func: callable):
     return wrapper
 
 
-@_client_wrapper
+#@_client_wrapper
 async def _send_message(user: str, message: str):
-    message = await core.translate(text=message, from_lang="en", to_lang="ru")
     async with client:
         await client.send_message(chat_id=user, text=message)
 
 
-async def send_message_from_prompt(prompt: str):
+async def send_prompt_message(prompt: str):
     self_prompt = f"""
 У меня есть список пользователей с которыми я веду диалог:
 {json.dumps(users, indent=2)}
@@ -82,7 +83,7 @@ async def send_message_from_prompt(prompt: str):
 }}
 Важно: не пиши ничего кроме json в ответе. Строго только json и ничего кроме json."""
 
-    answer = await core.ask_gpt(self_prompt)
+    answer = await core.gpt.ask(self_prompt)
     answer = "{" + answer.split("{")[1]
     answer = answer.split("}")[0] + "}"
     json_data = json.loads(answer)
