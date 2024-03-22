@@ -18,6 +18,13 @@ async def run_vosk():
     """
     Распознование библиотекой воск
     """
+    import sounddevice
+    #:TODO настройка устройства вывода потом переписать
+    # sounddevice.default.device = (1, None)
+    # dev_out = sounddevice.query_devices(kind="input")
+    # print(dev_out)
+    # print(sounddevice.check_output_settings())
+
     pa = pyaudio.PyAudio()
     stream = pa.open(format=pyaudio.paInt16,
                      channels=1,
@@ -25,12 +32,13 @@ async def run_vosk():
                      input=True,
                      frames_per_buffer=8000)
 
-    if not os.path.isdir("model"):
+
+    if not os.path.isdir("models/vosk/"):
         logger.warning("Папка модели воск не найдена\n"
                        "Please download a model for your language from https://alphacephei.com/vosk/models")
         sys.exit(0)
 
-    model = vosk.Model("model")  # Подгружаем модель
+    model = vosk.Model("models/vosk/vosk-model-small-ru-0.22")  # Подгружаем модель
     rec = vosk.KaldiRecognizer(model, 44100)
 
     logger.info("Запуск распознователя речи vosk вход в цикл")

@@ -68,7 +68,9 @@ async def _say_silero(core: Core, output_str):
                                    speaker="xenia",
                                    sample_rate=24000)
 
+    sounddevice.default.device = (None, 30)
     sounddevice.play(audio, samplerate=24000)
+    sounddevice.wait()
 
 
 @core.on_output.register()
@@ -80,8 +82,3 @@ async def say_silero(core: Core = None, output_str=None):
 async def say_all(core: Core = None, input_str=None):
     global is_mute
     is_mute = not is_mute
-
-# @core.on_input.register()
-# async def say_all(core: Core = None, input_str=None):
-#     if core and input_str:
-#         await _say_silero(core, input_str)
