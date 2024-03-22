@@ -80,6 +80,7 @@ class JaaCore:
         from os import listdir
         from os.path import isfile, join
         pluginpath = self.jaaRootFolder + "/plugins"
+        # Импорт изменен - добавлена возможность импорта папок
         files = []
         for f in listdir(pluginpath):
             if isfile(join(pluginpath, f)):
@@ -94,6 +95,7 @@ class JaaCore:
                 if fil.endswith(".py"):
                     fil = fil[:-3]
                 await self.init_plugin(fil)
+        # Конец изменений импорта
 
     async def init_plugin(self, modname):
         # import
