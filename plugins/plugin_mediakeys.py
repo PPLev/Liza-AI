@@ -17,5 +17,7 @@ async def start_with_options(core: Core, manifest: dict):
     pass
 
 
+
+
 def press_hotkey_pyautogui(hotkey: str):
     pyautogui.hotkey(hotkey)

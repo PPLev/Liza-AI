@@ -1,7 +1,8 @@
 import asyncio
 import json
 
-from pyrogram import Client, compose
+from pyrogram import Client
+from pyrogram import compose as _compose
 
 from core import Core, version
 
@@ -19,7 +20,7 @@ async def start(core: Core):
         "require_online": True,
 
         "default_options": {
-            "client": {  # to get this data - use this link: https://my.telegram.org/auth
+            "client": {  # to get this data - use this link: https://my.telegram.org/auth or use default
                 "api_id": "3648362",
                 "api_hash": "cacd564510b3498349d867a878557b19"
             },
@@ -44,31 +45,15 @@ async def start_with_options(core: Core, manifest: dict):
     )
     users = manifest["options"]["users"]
 
-    async def start_client():
-        await compose([client])
 
-    asyncio.run_coroutine_threadsafe(start_client(), asyncio.get_event_loop())
-
-
-def _client_wrapper(func: callable):
-    async def wrapper(*args, **kwargs):
-        await client.start()
-        await func(*args, **kwargs)
-        await client.stop()
-
-    return wrapper
-
-
-@_client_wrapper
 async def _send_message(user: str, message: str):
-    message = await core.translate(text=message, from_lang="en", to_lang="ru")
-    async with client:
-        await client.send_message(chat_id=user, text=message)
+    async with client as app:
+        await app.send_message(chat_id=user, text=message)
 
 
-async def send_message_from_prompt(prompt: str):
+async def send_prompt_message(prompt: str):
     self_prompt = f"""
-У меня есть список пользователей с которыми я веду диалог:
+У меня есть список пользователей которым можно писать сообщения:
 {json.dumps(users, indent=2)}
 В этом списке содержиться юзернейм и список имен по которым я обращаюсь к этим пользователям.
 Я хочу чтобы ты сделала это: {prompt}.
@@ -82,7 +67,7 @@ async def send_message_from_prompt(prompt: str):
 }}
 Важно: не пиши ничего кроме json в ответе. Строго только json и ничего кроме json."""
 
-    answer = await core.ask_gpt(self_prompt)
+    answer = await core.gpt.ask(self_prompt)
     answer = "{" + answer.split("{")[1]
     answer = answer.split("}")[0] + "}"
     json_data = json.loads(answer)
