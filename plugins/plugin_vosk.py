@@ -35,7 +35,7 @@ async def run_vosk():
 
     print(os.path.dirname("models/vosk/vosk-model-small-ru-0.22"))
     print(os.path.isdir("models/vosk/vosk-model-small-ru-0.22"))
-    if not os.path.isdir("models/vosk."):
+    if not os.path.isdir("models/vosk/"):
         logger.warning("Папка модели воск не найдена\n"
                        "Please download a model for your language from https://alphacephei.com/vosk/models")
         sys.exit(0)
@@ -47,7 +47,6 @@ async def run_vosk():
 
     while True:
         await asyncio.sleep(0)
-
 
         data = stream.read(8000)
         if rec.AcceptWaveform(data):
