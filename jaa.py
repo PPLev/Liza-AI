@@ -43,6 +43,7 @@ Python 3.5+ (due to dict mix in final_options calc), can be relaxed
 import os
 import traceback
 import json
+from os.path import isdir
 
 # here we trying to use termcolor to highlight plugin info and errors during load
 try:
@@ -79,13 +80,22 @@ class JaaCore:
         from os import listdir
         from os.path import isfile, join
         pluginpath = self.jaaRootFolder + "/plugins"
-        files = [f for f in listdir(pluginpath) if isfile(join(pluginpath, f))]
+        # Импорт изменен - добавлена возможность импорта папок
+        files = []
+        for f in listdir(pluginpath):
+            if isfile(join(pluginpath, f)):
+                files.append(f)
+            elif isdir(join(pluginpath, f)) and "__init__.py" in listdir(join(pluginpath, f)):
+                files.append(f)
+
 
         for fil in files:
             # print fil[:-3]
-            if fil.startswith(self.jaaPluginPrefix) and fil.endswith(".py"):
-                modfile = fil[:-3]
-                await self.init_plugin(modfile)
+            if fil.startswith(self.jaaPluginPrefix):
+                if fil.endswith(".py"):
+                    fil = fil[:-3]
+                await self.init_plugin(fil)
+        # Конец изменений импорта
 
     async def init_plugin(self, modname):
         # import

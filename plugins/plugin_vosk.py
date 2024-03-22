@@ -3,7 +3,6 @@ import json
 import os
 import sys
 
-import sounddevice
 import vosk
 
 from core import Core
@@ -14,11 +13,15 @@ logger = logging.getLogger("root")
 
 core = Core()
 
+model_settings = {}
+input_device_id = None
+
 
 async def run_vosk():
     """
     Распознование библиотекой воск
     """
+    import sounddevice
     #:TODO настройка устройства вывода потом переписать
     # sounddevice.default.device = (1, None)
     # dev_out = sounddevice.query_devices(kind="input")
@@ -28,19 +31,17 @@ async def run_vosk():
     pa = pyaudio.PyAudio()
     stream = pa.open(format=pyaudio.paInt16,
                      channels=1,
-                     input_device_index=1,
                      rate=44100,
                      input=True,
+                     input_device_index=input_device_id,
                      frames_per_buffer=8000)
 
-    print(os.path.dirname("models/vosk/vosk-model-small-ru-0.22"))
-    print(os.path.isdir("models/vosk/vosk-model-small-ru-0.22"))
-    if not os.path.isdir("models/vosk/"):
+    if not os.path.isdir(model_settings["model_path"] + model_settings["model_name"]):
         logger.warning("Папка модели воск не найдена\n"
                        "Please download a model for your language from https://alphacephei.com/vosk/models")
         sys.exit(0)
 
-    model = vosk.Model("models/vosk/vosk-model-small-ru-0.22")  # Подгружаем модель
+    model = vosk.Model(model_settings["model_path"] + model_settings["model_name"])  # Подгружаем модель
     rec = vosk.KaldiRecognizer(model, 44100)
 
     logger.info("Запуск распознователя речи vosk вход в цикл")
@@ -50,8 +51,6 @@ async def run_vosk():
 
         data = stream.read(8000)
         if rec.AcceptWaveform(data):
-            logger.info('Слушаю:')
-
             recognized_data = rec.Result()
             recognized_data = json.loads(recognized_data)
             voice_input_str = recognized_data["text"]
@@ -66,10 +65,19 @@ async def start(core: Core):
         "version": "1.0",
         "require_online": False,
 
-        "default_options": {},
+        "default_options": {
+            "model_settings": {
+                "model_path": "",
+                "model_name": "model"
+            },
+            "input_device_id": None
+        },
     }
     return manifest
 
 
 async def start_with_options(core: Core, manifest: dict):
+    global model_settings, input_device_id
+    model_settings = manifest["options"]["model_settings"]
+    input_device_id = manifest["options"]["input_device_id"]
     asyncio.run_coroutine_threadsafe(run_vosk(), asyncio.get_running_loop())
