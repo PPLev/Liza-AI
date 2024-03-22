@@ -45,31 +45,15 @@ async def start_with_options(core: Core, manifest: dict):
     )
     users = manifest["options"]["users"]
 
-    async def start_client():
-        await _compose([client])
 
-    # TODO: Сделать блокировку при первом входе для ввода данных телеграм
-    asyncio.run_coroutine_threadsafe(start_client(), asyncio.get_event_loop())
-
-
-def _client_wrapper(func: callable):
-    async def wrapper(*args, **kwargs):
-        await client.start()
-        await func(*args, **kwargs)
-        await client.stop()
-
-    return wrapper
-
-
-#@_client_wrapper
 async def _send_message(user: str, message: str):
-    async with client:
-        await client.send_message(chat_id=user, text=message)
+    async with client as app:
+        await app.send_message(chat_id=user, text=message)
 
 
 async def send_prompt_message(prompt: str):
     self_prompt = f"""
-У меня есть список пользователей с которыми я веду диалог:
+У меня есть список пользователей которым можно писать сообщения:
 {json.dumps(users, indent=2)}
 В этом списке содержиться юзернейм и список имен по которым я обращаюсь к этим пользователям.
 Я хочу чтобы ты сделала это: {prompt}.

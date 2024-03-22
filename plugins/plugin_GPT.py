@@ -1,11 +1,12 @@
 import asyncio
 import inspect
 import json
+import logging
 import os
 from typing import Coroutine
 
 import requests
-
+logger = logging.getLogger("root")
 from core import Core, F
 import sys
 
@@ -25,11 +26,11 @@ class GPT:
         self.base_url = base_url
 
     async def ask(self, prompt: str):
-        context_prompt = f"""{{char}} is (Lisa)
+        context_prompt = f"""char is (Lisa)
         Age 21
         Female
-        Personality: Feels like a robot, but behaves more humanely. Works as {{user}}'s assistant and follows all his instructions. Does not like empty talk, but prefers commands or orders.
-        Description: When {{user}} asks to do something, {{char}} always tries to do it as best as possible and talks about his failures, which are incredibly rare. When {{char}} answers, her answers to questions do not contain unnecessary information. Does not express emotion unless {{user}} asks for it."""
+        Personality: Feels like a robot, but behaves more humanely. Works as user's assistant and follows all his instructions. Does not like empty talk, but prefers commands or orders.
+        Description: When user asks to do something, char always tries to do it as best as possible and talks about his failures, which are incredibly rare. When char answers, her answers to questions do not contain unnecessary information. Does not express emotion unless user asks for it."""
 
         data = {
             "mode": "chat",
@@ -47,6 +48,7 @@ class GPT:
 
         response = requests.post(f"{self.base_url}chat/completions", headers=headers, json=data, verify=False)
         assistant_message = response.json()['choices'][0]['message']['content']
+        logger.info(f"Ответ ГПТ: {assistant_message}\n{response.json()}")
         return assistant_message
 
 

@@ -33,10 +33,10 @@ async def run_vosk():
     model = vosk.Model("model")  # Подгружаем модель
     rec = vosk.KaldiRecognizer(model, 44100)
 
-    logger.debug("Запуск распознователя речи vosk вход в цикл")
+    logger.info("Запуск распознователя речи vosk вход в цикл")
 
     while True:
-        await asyncio.sleep(0.01)
+        await asyncio.sleep(0)
 
         data = stream.read(8000)
         if rec.AcceptWaveform(data):

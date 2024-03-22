@@ -7,11 +7,13 @@ import sounddevice
 import torch
 
 from core import Core
+from utils.custom_filters import levenshtein_filter
 
 logger = logging.getLogger("root")
 core = Core()
 
 silero_model = None
+is_mute = False
 
 
 async def start(core: Core):
@@ -31,6 +33,8 @@ async def start_with_options(core: Core, manifest: dict):
 
 async def _say_silero(core: Core, output_str):
     global silero_model
+    if is_mute:
+        return
     if silero_model is None:  # Подгружаем модель если не подгрузили ранее
         logger.debug("Загрузка модели силеро")
         if not os.path.isfile("silero.pt"):  # Если нет файла модели - скачиваем
@@ -59,6 +63,11 @@ async def _say_silero(core: Core, output_str):
 async def say_silero(core: Core = None, output_str=None):
     await _say_silero(core, output_str)
 
+
+@core.on_input.register(levenshtein_filter("без звука", min_ratio=85))
+async def say_all(core: Core = None, input_str=None):
+    global is_mute
+    is_mute = not is_mute
 
 # @core.on_input.register()
 # async def say_all(core: Core = None, input_str=None):
