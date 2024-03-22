@@ -17,6 +17,7 @@ is_mute = False
 model_settings = {}
 output_device_id = None
 
+
 async def start(core: Core):
     manifest = {
         "name": "Плагин генерации речи с помощью silero",
@@ -48,14 +49,14 @@ async def _say_silero(core: Core, output_str):
     if silero_model is None:  # Подгружаем модель если не подгрузили ранее
         logger.debug("Загрузка модели силеро")
         # Если нет файла модели - скачиваем
-        if not os.path.isfile(model_settings["model_path"]+model_settings["model_name"]):
+        if not os.path.isfile(model_settings["model_path"] + model_settings["model_name"]):
             logger.debug("Скачивание модели silero")
             torch.hub.download_url_to_file(
-                model_settings["model_url"], model_settings["model_path"]+model_settings["model_name"]
+                model_settings["model_url"], model_settings["model_path"] + model_settings["model_name"]
             )
 
         silero_model = torch.package.PackageImporter(
-            model_settings["model_path"]+model_settings["model_name"]
+            model_settings["model_path"] + model_settings["model_name"]
         ).load_pickle("tts_models", "model")
         device = torch.device("cpu")
         silero_model.to(device)

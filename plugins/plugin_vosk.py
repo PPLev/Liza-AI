@@ -13,6 +13,9 @@ logger = logging.getLogger("root")
 
 core = Core()
 
+model_settings = {}
+input_device_id = None
+
 
 async def run_vosk():
     """
@@ -30,15 +33,15 @@ async def run_vosk():
                      channels=1,
                      rate=44100,
                      input=True,
+                     input_device_index=input_device_id,
                      frames_per_buffer=8000)
 
-
-    if not os.path.isdir("models/vosk/"):
+    if not os.path.isdir(model_settings["model_path"] + model_settings["model_name"]):
         logger.warning("Папка модели воск не найдена\n"
                        "Please download a model for your language from https://alphacephei.com/vosk/models")
         sys.exit(0)
 
-    model = vosk.Model("models/vosk/vosk-model-small-ru-0.22")  # Подгружаем модель
+    model = vosk.Model(model_settings["model_path"] + model_settings["model_name"])  # Подгружаем модель
     rec = vosk.KaldiRecognizer(model, 44100)
 
     logger.info("Запуск распознователя речи vosk вход в цикл")
@@ -62,10 +65,19 @@ async def start(core: Core):
         "version": "1.0",
         "require_online": False,
 
-        "default_options": {},
+        "default_options": {
+            "model_settings": {
+                "model_path": "",
+                "model_name": "model"
+            },
+            "input_device_id": None
+        },
     }
     return manifest
 
 
 async def start_with_options(core: Core, manifest: dict):
+    global model_settings, input_device_id
+    model_settings = manifest["options"]["model_settings"]
+    input_device_id = manifest["options"]["input_device_id"]
     asyncio.run_coroutine_threadsafe(run_vosk(), asyncio.get_running_loop())
