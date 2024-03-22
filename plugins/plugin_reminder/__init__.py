@@ -1,6 +1,8 @@
 from core import Core, F
 
 core = Core()
+from base import Notice
+
 
 
 async def start(core: Core):
@@ -16,8 +18,3 @@ async def start(core: Core):
 
 async def start_with_options(core: Core, manifest: dict):
     print("reminder!!!!!!!!!!!!!!!!!!!!!!")
-
-@core.on_input.register(F == "привет")
-async def test(core, input_str):
-    print("Работаем)")
-    await core.run_output("ура")
