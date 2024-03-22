@@ -15,6 +15,7 @@ core = Core()
 silero_model = None
 is_mute = False
 model_settings = {}
+output_device_id = None
 
 async def start(core: Core):
     manifest = {
@@ -27,15 +28,17 @@ async def start(core: Core):
                 "model_path": "",
                 "model_name": "silero.pt",
                 "model_url": "https://models.silero.ai/models/tts/ru/v4_ru.pt"
-            }
+            },
+            "output_device_id": None
         },
     }
     return manifest
 
 
 async def start_with_options(core: Core, manifest: dict):
-    global model_settings
+    global model_settings, output_device_id
     model_settings = manifest["options"]["model_settings"]
+    output_device_id = manifest["options"]["output_device_id"]
 
 
 async def _say_silero(core: Core, output_str):
@@ -68,8 +71,11 @@ async def _say_silero(core: Core, output_str):
                                    speaker="xenia",
                                    sample_rate=24000)
 
-    sounddevice.default.device = (None, 30)
+    if output_device_id:
+        sounddevice.default.device = (None, output_device_id)
+
     sounddevice.play(audio, samplerate=24000)
+    # TODO: Сделать блокировку распознавания при воспроизведении
     sounddevice.wait()
 
 
