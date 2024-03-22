@@ -120,7 +120,7 @@ async def _translater(text: str, from_lang: str, to_lang: str):
 
 
 @core.on_input.register()
-async def _ask_gpt(core: Core = None, input_str=None):
+async def _ask_gpt(core: Core, input_str):
     prompt = f"""
 У меня есть список модулей и их функций для выполнения:
 {json.dumps(get_plugin_funcs(), indent=2)}

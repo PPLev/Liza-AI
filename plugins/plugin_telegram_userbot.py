@@ -20,7 +20,7 @@ async def start(core: Core):
         "require_online": True,
 
         "default_options": {
-            "client": {  # to get this data - use this link: https://my.telegram.org/auth
+            "client": {  # to get this data - use this link: https://my.telegram.org/auth or use default
                 "api_id": "3648362",
                 "api_hash": "cacd564510b3498349d867a878557b19"
             },

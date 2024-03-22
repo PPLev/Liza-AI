@@ -31,6 +31,12 @@ class EventObserver:
     def __init__(self):
         self.callbacks = []
 
+    async def _run_callback(self, callback, *args, **kwargs):
+        try:
+            await callback(*args, **kwargs)
+        except Exception as exc:
+            logging.exception(f'Сопрограмма вызвала исключение: {exc}')
+
     def register(self, filt: MagicFilter = None):
         def wrapper(func: callable):
             if filt:
@@ -41,12 +47,22 @@ class EventObserver:
                         raise NotFoundFilerTextError
 
                     if filt.resolve(for_filter):
-                        asyncio.run_coroutine_threadsafe(func(*args, **kwargs), asyncio.get_event_loop())
+                        asyncio.run_coroutine_threadsafe(
+                            self._run_callback(func, *args, **kwargs),
+                            asyncio.get_event_loop()
+                        )
+                        #await self._run_callback(func, *args, **kwargs)
+                        #asyncio.run_coroutine_threadsafe(func(*args, **kwargs), asyncio.get_event_loop())
             else:
                 async def wrapper_(*args, **kwargs):
                     if "for_filter" in kwargs:
                         kwargs.pop("for_filter")
-                    asyncio.run_coroutine_threadsafe(func(*args, **kwargs), asyncio.get_event_loop())
+                    asyncio.run_coroutine_threadsafe(
+                        self._run_callback(func, *args, **kwargs),
+                        asyncio.get_event_loop()
+                    )
+                    #await self._run_callback(func, *args, **kwargs)
+                    #asyncio.run_coroutine_threadsafe(func(*args, **kwargs), asyncio.get_event_loop())
 
             self.callbacks.append(wrapper_)
 
