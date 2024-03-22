@@ -48,21 +48,19 @@ class EventObserver:
 
                     if filt.resolve(for_filter):
                         asyncio.run_coroutine_threadsafe(
-                            self._run_callback(func, *args, **kwargs),
-                            asyncio.get_event_loop()
+                            coro=self._run_callback(func, *args, **kwargs),
+                            loop=asyncio.get_event_loop()
                         )
-                        #await self._run_callback(func, *args, **kwargs)
-                        #asyncio.run_coroutine_threadsafe(func(*args, **kwargs), asyncio.get_event_loop())
+
             else:
                 async def wrapper_(*args, **kwargs):
                     if "for_filter" in kwargs:
                         kwargs.pop("for_filter")
+
                     asyncio.run_coroutine_threadsafe(
-                        self._run_callback(func, *args, **kwargs),
-                        asyncio.get_event_loop()
+                        coro=self._run_callback(func, *args, **kwargs),
+                        loop=asyncio.get_event_loop()
                     )
-                    #await self._run_callback(func, *args, **kwargs)
-                    #asyncio.run_coroutine_threadsafe(func(*args, **kwargs), asyncio.get_event_loop())
 
             self.callbacks.append(wrapper_)
 
@@ -98,13 +96,3 @@ class Core(JaaCore, metaclass=MetaSingleton):
         # No recommend
         python = sys.executable
         os.execl(python, python, *sys.argv)
-
-
-async def main():
-    core = Core()
-    await core.init_plugins()
-    await core.start_loop()
-
-
-if __name__ == '__main__':
-    asyncio.run(main())
