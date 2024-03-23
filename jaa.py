@@ -141,11 +141,12 @@ class JaaCore:
                 if saved_options:
                     final_options = {**res["default_options"], **saved_options}
                 else:
-                    final_options = res
+                    final_options = res["default_options"]
 
                 # if no option found or version is differ from mod version
-                if saved_options or saved_options["v"] != res["version"]:
+                if not saved_options or saved_options["v"] != res["version"]:
                     final_options["v"] = res["version"]
+                    final_options["is_active"] = True
                     self.save_plugin_options(modname, final_options)
 
                 res["options"] = final_options

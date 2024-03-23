@@ -49,7 +49,6 @@ async def start(core: Core):
     manifest = {
         "name": "Плагин вебсокет сервера",
         "version": "0.1",
-        "is_active": True,
         "default_options": {
             "host": "localhost",
             "port": 8766,

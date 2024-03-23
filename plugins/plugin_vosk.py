@@ -56,15 +56,13 @@ async def run_vosk():
             voice_input_str = recognized_data["text"]
             if voice_input_str != "" and voice_input_str is not None:
                 logger.info(f"Распознано Vosk: '{voice_input_str}'")
-                await core.run_input(input_str=voice_input_str)
+                await core.on_input(input_str=voice_input_str, s=123)
 
 
 async def start(core: Core):
     manifest = {
         "name": "Плагин распознования речи с помощью воск",
         "version": "1.0",
-        "require_online": False,
-        "is_active": True,
 
         "default_options": {
             "model_settings": {
