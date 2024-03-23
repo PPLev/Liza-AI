@@ -118,16 +118,7 @@ async def _translater(text: str, from_lang: str, to_lang: str):
     return text
 
 
-def swicher(fn):
-    async def wrapper(*args, **kwargs):
-        if "is_active" == True:
-            await fn(*args, **kwargs)
-
-    return wrapper
-
-
 @core.on_input.register()
-@swicher
 async def _ask_gpt(core: Core, input_str, **kwargs):
     prompt = f"""
 У меня есть список модулей и их функций для выполнения:
