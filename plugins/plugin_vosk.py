@@ -56,7 +56,7 @@ async def run_vosk():
             voice_input_str = recognized_data["text"]
             if voice_input_str != "" and voice_input_str is not None:
                 logger.info(f"Распознано Vosk: '{voice_input_str}'")
-                await core.on_input(input_str=voice_input_str, s=123)
+                await core.on_input(core, input_str=voice_input_str, for_filter=voice_input_str)
 
 
 async def start(core: Core):
