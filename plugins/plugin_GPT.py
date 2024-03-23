@@ -57,6 +57,7 @@ async def start(core: Core):
         "name": "Плагин GPT",
         "version": "1.1",
         "require_online": False,
+        "is_active": True,
 
         "default_options": {
             "openai_completable": {

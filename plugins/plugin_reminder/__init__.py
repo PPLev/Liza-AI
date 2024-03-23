@@ -1,7 +1,7 @@
 from core import Core, F
 
 core = Core()
-from base import Notice
+from .base import Notice
 
 
 
