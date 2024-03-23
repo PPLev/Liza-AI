@@ -22,16 +22,13 @@ async def start(core: Core):
     manifest = {
         "name": "Плагин генерации речи с помощью silero",
         "version": "1.1",
-        "require_online": False,
-        "is_active": True,
-
         "default_options": {
             "model_settings": {
                 "model_path": "",
                 "model_name": "silero.pt",
                 "model_url": "https://models.silero.ai/models/tts/ru/v4_ru.pt"
             },
-            "output_device_id": None
+            "output_device_id": None,
         },
     }
     return manifest
@@ -82,11 +79,11 @@ async def _say_silero(core: Core, output_str):
 
 
 @core.on_output.register()
-async def say_silero(core: Core = None, output_str=None):
+async def say_silero(core: Core, output_str, **kwargs):
     await _say_silero(core, output_str)
 
 
 @core.on_input.register(levenshtein_filter("без звука", min_ratio=85))
-async def say_all(core: Core = None, input_str=None):
+async def mute(core: Core, input_str, **kwargs):
     global is_mute
     is_mute = not is_mute

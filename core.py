@@ -29,7 +29,7 @@ class MetaSingleton(type):
 
 class EventObserver:
     def __init__(self):
-        self.callbacks = []
+        self.callbacks = {}
 
     async def _run_callback(self, callback, *args, **kwargs):
         try:
@@ -62,29 +62,24 @@ class EventObserver:
                         loop=asyncio.get_event_loop()
                     )
 
-            self.callbacks.append(wrapper_)
+            self.callbacks[f"{func.__module__}.{func.__name__}"] = wrapper_
 
         return wrapper
 
-    async def event(self, *args, **kwargs):
-        for callback in self.callbacks:
+    async def __call__(self, *args, **kwargs):
+        for callback in self.callbacks.values():
             await callback(*args, **kwargs)
 
 
 class Core(JaaCore, metaclass=MetaSingleton):
-    def __init__(self):
+    def __init__(self, observer_list=["on_input", "on_output"]):
         super().__init__()
 
-        self.print_red = lambda txt: cprint(txt, "red")
-        self.format_print_key_list = lambda key, value: print(colored(key + ": ", "blue") + ", ".join(value))
-        self.on_input = EventObserver()
-        self.on_output = EventObserver()
+        for observer in observer_list:
+            self.add_observer(observer)
 
-    async def run_input(self, input_str=None):
-        await self.on_input.event(core=self, input_str=input_str, for_filter=input_str)
-
-    async def run_output(self, output_str=None):
-        await self.on_output.event(core=self, output_str=output_str, for_filter=output_str)
+    def add_observer(self, observer_name):
+        setattr(self, observer_name, EventObserver())
 
     @staticmethod
     async def start_loop():
@@ -92,7 +87,7 @@ class Core(JaaCore, metaclass=MetaSingleton):
             await asyncio.sleep(0)
 
     @staticmethod
-    async def reboot():
-        # No recommend
+    async def _reboot():
+        # No recommend for use
         python = sys.executable
         os.execl(python, python, *sys.argv)

@@ -9,7 +9,6 @@ async def start(core: Core):
     manifest = {
         "name": "Плагин заметок",
         "version": "1.0",
-        "require_online": False,
 
         "default_options": {},
     }
