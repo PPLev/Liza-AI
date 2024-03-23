@@ -38,12 +38,17 @@ main.init_plugins()
 
 - Requirements
 Python 3.5+ (due to dict mix in final_options calc), can be relaxed
+
+AzimovIZ mod:
+The modification includes a transition to asynchronous working methods as well as the ability to
+import plugin directories.
 """
 
 import os
+import sys
 import traceback
 import json
-from os.path import isdir
+from os.path import isdir, isfile
 
 # here we trying to use termcolor to highlight plugin info and errors during load
 try:
@@ -88,7 +93,6 @@ class JaaCore:
             elif isdir(join(pluginpath, f)) and "__init__.py" in listdir(join(pluginpath, f)):
                 files.append(f)
 
-
         for fil in files:
             # print fil[:-3]
             if fil.startswith(self.jaaPluginPrefix):
@@ -97,8 +101,24 @@ class JaaCore:
                 await self.init_plugin(fil)
         # Конец изменений импорта
 
+    def get_plugin_options_or_none(self, modname):
+        # saved options try to read
+        if isfile(f"options/{modname}.json"):
+            with open(self.jaaOptionsPath + '/' + modname + '.json', 'r', encoding="utf-8") as f:
+                s = f.read()
+                saved_options = json.loads(s)
+
+            return saved_options
+
+        return None
+
     async def init_plugin(self, modname):
         # import
+
+        saved_options = self.get_plugin_options_or_none(modname)
+        if saved_options and not saved_options["is_active"]:
+            return
+
         try:
             mod = await self.import_plugin("plugins." + modname)
         except Exception as e:
@@ -115,20 +135,13 @@ class JaaCore:
         # if plugin has an options
         if "default_options" in res:
             try:
-                # saved options try to read
-                saved_options = {}
-                try:
-                    with open(self.jaaOptionsPath + '/' + modname + '.json', 'r', encoding="utf-8") as f:
-                        s = f.read()
-                    saved_options = json.loads(s)
-                    # print("Saved options", saved_options)
-                except Exception as e:
-                    pass
-
                 res["default_options"]["v"] = res["version"]
 
                 # only string needs Python 3.5
-                final_options = {**res["default_options"], **saved_options}
+                if saved_options:
+                    final_options = {**res["default_options"], **saved_options}
+                else:
+                    final_options = res
 
                 # if no option found or version is differ from mod version
                 if len(saved_options) == 0 or saved_options["v"] != res["version"]:
@@ -166,6 +179,12 @@ class JaaCore:
 
         self.on_succ_plugin_start(modname, plugin_name, plugin_version)
         return True
+
+    def _deimport_plugin(self, plugin):
+        try:
+            del sys.modules["plugins." + plugin]
+        except Exception as err:
+            print(f"Не удалось деимпортровать плагин {plugin}: {err}")
 
     def on_succ_plugin_start(self, modname, plugin_name, plugin_version):
         cprint("JAA PLUGIN: {1} {2} ({0}) started!".format(modname, plugin_name, plugin_version))

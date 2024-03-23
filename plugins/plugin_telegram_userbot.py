@@ -18,6 +18,7 @@ async def start(core: Core):
         "name": "Плагин юзербота телеграм",
         "version": "1.1",
         "require_online": True,
+        "is_active": True,
 
         "default_options": {
             "client": {  # to get this data - use this link: https://my.telegram.org/auth or use default

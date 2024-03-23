@@ -23,6 +23,7 @@ async def start(core: Core):
         "name": "Плагин генерации речи с помощью silero",
         "version": "1.1",
         "require_online": False,
+        "is_active": True,
 
         "default_options": {
             "model_settings": {

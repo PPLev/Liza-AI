@@ -7,6 +7,7 @@ async def start(core: Core):
         "name": "Плагин медиаклавиш",
         "version": "1.0",
         "require_online": False,
+        "is_active": True,
 
         "default_options": {},
     }
