@@ -118,7 +118,7 @@ async def _translater(text: str, from_lang: str, to_lang: str):
     return text
 
 
-@core.on_input.register()
+#@core.on_input.register()
 async def _ask_gpt(core: Core, input_str, **kwargs):
     prompt = f"""
 У меня есть список модулей и их функций для выполнения:

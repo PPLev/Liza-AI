@@ -4,7 +4,8 @@ import json
 from pyrogram import Client
 from pyrogram import compose as _compose
 
-from core import Core, version
+import packages
+from core import Core, version, F
 
 core = Core()
 
@@ -44,33 +45,45 @@ async def start_with_options(core: Core, manifest: dict):
         device_model="Liza-AI",
         system_version="Assistant"
     )
+    await client.start()
     users = manifest["options"]["users"]
 
 
 async def _send_message(user: str, message: str):
-    async with client as app:
-        await app.send_message(chat_id=user, text=message)
+    if client.is_connected:
+        await client.send_message(chat_id=user, text=message)
+    else:
+        async with client as app:
+            await app.send_message(chat_id=user, text=message)
 
 
-async def send_prompt_message(prompt: str):
+@core.on_input.register(F.contains("телеграм"))
+async def send_prompt_message(package: packages.TextPackage):
     self_prompt = f"""
 У меня есть список пользователей которым можно писать сообщения:
 {json.dumps(users, indent=2)}
-В этом списке содержиться юзернейм и список имен по которым я обращаюсь к этим пользователям.
-Я хочу чтобы ты сделала это: {prompt}.
-Тебе нужно определить какому пользователю нужно отправить сообщение.
+В этом списке содержаться юзернейм и список имен по которым я обращаюсь к этим пользователям.
+{{
+    "<имя пользователя>": [<варианты обращения>]
+}}
+Я хочу чтобы ты сделала это: {package.input_text}.
+Тебе нужно определить какому пользователю нужно отправить сообщение на основе списка пользователей.
 Также нужно передать сообщение которое я хочу отправить этому пользователю.
 В ответ надо прислать json с указанием юзернейма и текста сообщения которое ему предназначалось.
 пример для "спроси у жени как у него дела":
 {{
-    "username": "EvgenY123",
+    "username": "имя пользователя",
     "message": "как твои дела?"
 }}
 Важно: не пиши ничего кроме json в ответе. Строго только json и ничего кроме json."""
-
     answer = await core.gpt.ask(self_prompt)
     answer = "{" + answer.split("{")[1]
     answer = answer.split("}")[0] + "}"
     json_data = json.loads(answer)
 
     await _send_message(user=json_data["username"], message=json_data["message"])
+
+    await package.run_hook()
+
+if __name__ == '__main__':
+    pass
