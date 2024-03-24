@@ -91,8 +91,10 @@ def get_plugin_funcs():
                 {
                     import_name: {
                         name: obj for (name, obj) in vars(mod).items()
-                        if
-                        hasattr(obj, "__class__") and obj.__class__.__name__ == "function" and not name.startswith("_") and not name in ["start_with_options", "start"]
+                        if hasattr(obj, "__class__") and
+                           obj.__class__.__name__ == "function" and
+                           not name.startswith("_") and
+                           not name in ["start_with_options", "start"]
                     }
                 }
             )
@@ -119,12 +121,12 @@ async def _translater(text: str, from_lang: str, to_lang: str):
 
 
 #@core.on_input.register()
-async def _ask_gpt(core: Core, input_str, **kwargs):
+async def _ask_gpt(package):
     prompt = f"""
 У меня есть список модулей и их функций для выполнения:
 {json.dumps(get_plugin_funcs(), indent=2)}
 Для каждого модуля и функции указаны её имя и функционал.
-Тебе нужно определить какой модуль и какую функцию модуля следует использовать для выполнения инструкции: "{input_str}" из представленных ранее данных.
+Тебе нужно определить какой модуль и какую функцию модуля следует использовать для выполнения инструкции: "{package.input_text}" из представленных ранее данных.
 В ответ тебе нужно написать только строку в формате json.
 Формат общения должен соответствовать следующему примеру:
 Инструкция : "включи мультик"
@@ -154,3 +156,36 @@ async def _ask_gpt(core: Core, input_str, **kwargs):
         await func(**json_data)
     else:
         func(**json_data)
+
+"""У тебя есть доступ к следующим инструментам:
+[
+ {
+   "tool": "sum_numbers",   
+   "description": "Функция сложения двух чисел"
+   "tool_input": [     
+   {"name": "Number1",       "type": "integer"},     
+   {"name": "Number2",       "type": "integer"},   
+   ],
+ },
+ {
+   "tool": "multiply_numbers",   
+   "description": "Функция перемножения двух чисел"
+   "tool_input": [     
+   {"name": "Number1",       "type": "integer"},     
+   {"name": "Number2",       "type": "integer"},
+   ] 
+ }
+]
+Ты должен всегда выбирать один из представленных инструментов и отвечать только в формате JSON со следующей схемой:
+{
+ "tool": <имя выбранного инструмента>, 
+ "tool_input": <только список параметров и значений>
+}
+Пример ответа:{
+  "tool": "ответ_пользователю",
+  "tool_input": {
+    "Ответ": "Привет! Чем могу помочь?"
+  }
+}
+
+"""

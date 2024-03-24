@@ -62,7 +62,6 @@ async def run_vosk():
             if voice_input_str != "" and voice_input_str is not None:
                 logger.info(f"Распознано Vosk: '{voice_input_str}'")
                 package = packages.TextPackage(voice_input_str, core, all_ok)
-                package.text = ""
                 await core.on_input(package=package)
 
 
