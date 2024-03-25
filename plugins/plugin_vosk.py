@@ -2,7 +2,9 @@ import asyncio
 import json
 import os
 import sys
+import wave
 
+import soundfile
 import vosk
 import pyaudio
 import logging
@@ -16,10 +18,39 @@ core = Core()
 
 model_settings = {}
 input_device_id = None
+vosk_model = None
 
 
 async def all_ok(package: packages.TextPackage):
     await package.core.on_output(packages.TextPackage("Готово", package.core, packages.NULL_HOOK))
+
+
+def load_model():
+    global vosk_model
+    vosk_model = vosk.Model(model_settings["model_path"] + model_settings["model_name"])  # Подгружаем модель
+
+
+def recognize_file(file):
+    data, samplerate = soundfile.read(file)
+    soundfile.write(file, data, samplerate)
+
+    wf = wave.open(file, "rb")
+
+    if vosk_model is None:
+        load_model()
+    rec = vosk.KaldiRecognizer(vosk_model, 44100)
+    rec.SetWords(True)
+    rec.SetPartialWords(True)
+
+    while True:
+        data = wf.readframes(4000)
+        if len(data) == 0:
+            break
+        rec.AcceptWaveform(data)
+
+    if "text" in (recognized := json.loads(rec.FinalResult())):
+        return recognized["text"]
+    return "Не распознано("
 
 
 async def run_vosk():
@@ -46,8 +77,9 @@ async def run_vosk():
                        "Please download a model for your language from https://alphacephei.com/vosk/models")
         sys.exit(0)
 
-    model = vosk.Model(model_settings["model_path"] + model_settings["model_name"])  # Подгружаем модель
-    rec = vosk.KaldiRecognizer(model, 44100)
+    if not vosk_model:
+        load_model()
+    rec = vosk.KaldiRecognizer(vosk_model, 44100)
 
     logger.info("Запуск распознователя речи vosk вход в цикл")
 
@@ -86,3 +118,4 @@ async def start_with_options(core: Core, manifest: dict):
     model_settings = manifest["options"]["model_settings"]
     input_device_id = manifest["options"]["input_device_id"]
     asyncio.run_coroutine_threadsafe(run_vosk(), asyncio.get_running_loop())
+    core.recognize_file = recognize_file
