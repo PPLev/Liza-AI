@@ -6,6 +6,9 @@ import os
 from typing import Coroutine
 
 import requests
+
+import packages
+
 logger = logging.getLogger("root")
 from core import Core, F
 import sys
@@ -20,24 +23,27 @@ onerig_traslater_url = ""
 
 
 class GPT:
-    def __init__(self, model: str, token: str = None, base_url: str = None):
+    def __init__(self, model: str, token: str = None, base_url: str = None, promts: dict = None):
         self.model = model
         self.token = token
         self.base_url = base_url
+        self.promts = promts
 
     async def ask(self, prompt: str):
-        context_prompt = f"""char is (Lisa)
-        Age 21
-        Female
-        Personality: Feels like a robot, but behaves more humanely. Works as user's assistant and follows all his instructions. Does not like empty talk, but prefers commands or orders.
-        Description: When user asks to do something, char always tries to do it as best as possible and talks about his failures, which are incredibly rare. When char answers, her answers to questions do not contain unnecessary information. Does not express emotion unless user asks for it."""
 
+        context_prompt = self.promts["base"]
         data = {
             "mode": "chat",
             "messages": [
                 {"role": "system", "content": context_prompt},
                 {"role": "user", "content": prompt}
-            ]
+            ],
+            # "top_p": 0.5,
+            # "top_k": 0,
+            "temperature": 0.3,
+            # "frequency_penalty": 0,
+            # "presence_penalty": 0,
+            # "repetition_penalty": 1,
         }
         if self.model:
             data.update({"model": self.model})
@@ -47,6 +53,7 @@ class GPT:
             headers.update({"Authorization": f"Bearer {self.token}"})
 
         response = requests.post(f"{self.base_url}chat/completions", headers=headers, json=data, verify=False)
+        print(response.json())
         assistant_message = response.json()['choices'][0]['message']['content']
         logger.info(f"Ответ ГПТ: {assistant_message}\n{response.json()}")
         return assistant_message
@@ -55,7 +62,7 @@ class GPT:
 async def start(core: Core):
     manifest = {
         "name": "Плагин GPT",
-        "version": "1.1",
+        "version": "1.2",
 
         "default_options": {
             "openai_completable": {
@@ -65,19 +72,42 @@ async def start(core: Core):
             },
             "use_custom_base": True,
             "use_onerig_traslater": False,
-            "onerig_traslater_url": "http://127.0.0.1:4990/translate"
+            "onerig_traslater_url": "http://127.0.0.1:4990/translate",
+            "promts": {
+                "base": """Твое имя Лиза,
+                 ты моя жена, просто говори что думаешь на счет моих слов. Отвечай кратко не больше одного предложения"""
+            }
         },
+
     }
     return manifest
 
 
 async def start_with_options(core: Core, manifest: dict):
+    promts = manifest["options"]["promts"]
     base_url = manifest["options"]["openai_completable"]["base_url"]
     model = manifest["options"]["openai_completable"]["model"]
     token = manifest["options"]["openai_completable"]["token"]
     use_custom_base = manifest["options"]["use_custom_base"]
 
-    core.gpt = GPT(model=model, token=token, base_url=base_url if use_custom_base else "https://api.openai.com/v1")
+    core.gpt = GPT(model=model, token=token, base_url=base_url if use_custom_base else "https://api.openai.com/v1", promts=promts)
+
+
+def get_plugin_funcs2():
+    func_list = {}
+    for plugin_name in os.listdir("plugins"):
+        if "__pycache__" not in plugin_name:
+            fname = f"plugins/{plugin_name}"
+            if os.path.isfile(fname):
+                func_list[plugin_name.split('.py')[0]] = []
+                with open(fname, "r", encoding='utf-8') as plugin_file:
+                    plugin_content = plugin_file.read()
+            if os.path.isdir(fname):
+                func_list[plugin_name.split('.py')[0]] = []
+
+    print(func_list)
+    # достаем регулярками все что нужно
+    # import_name = f"plugins.{plugin_name.split('.py')[0]}"
 
 
 def get_plugin_funcs():
@@ -120,42 +150,123 @@ async def _translater(text: str, from_lang: str, to_lang: str):
     return text
 
 
-#@core.on_input.register()
-async def _ask_gpt(package):
-    prompt = f"""
-У меня есть список модулей и их функций для выполнения:
-{json.dumps(get_plugin_funcs(), indent=2)}
-Для каждого модуля и функции указаны её имя и функционал.
-Тебе нужно определить какой модуль и какую функцию модуля следует использовать для выполнения инструкции: "{package.input_text}" из представленных ранее данных.
+def get_promt(package):
+    """
+    функция собирает промт
+    """
+    methods = get_plugin_funcs2()
+
+    data = {
+        "plugins.plugin_telegram_userbot": {
+            "methods": [
+                {
+                    "name": "send_message",
+                    "discription": "Отправлет сообщение указанному пользователю",
+                    "method_input": [
+                        {"name": "Text", "type": "str"},
+                    ]
+                },
+            ]
+        },
+        "plugins.plugin_vosk": {
+            "name": "plugin_vosk",
+            "methods": [
+                {
+                    "name": "all_ok",
+                    "discription": "Запускает хук",
+                    "method_input": [
+                        {"name": "package", "type": "<class 'packages.TextPackage'>"},
+                    ]
+                },
+                {
+                    "name": "run_vosk",
+                    "discription": "запускаем прослушку воска",
+                    "method_input": [
+                        {"name": "package", "type": "<class 'packages.TextPackage'>"},
+                    ]
+                },
+                {
+                    "name": "speech",
+                    "discription": "Запускает хук",
+                    "method_input": [
+                        {"name": "Text", "type": "<class 'packages.TextPackage'>"},
+                    ]
+                },
+            ]
+        },
+        "plugins.time": {
+            "name": "time",
+            "methods": [
+                {
+                    "name": "timer_start",
+                    "discription": "Запускает таймер с  указанным количеством времени",
+                    "method_input": [
+                        {"name": "Number1", "type": "integer"},
+                    ],
+                },
+                {
+                    "name": "timer_stop",
+                    "discription": "Останавливает запущеный таймер",
+                    "method_input": []
+                },
+                {
+                    "name": "get_time",
+                    "discription": "Получить текущее время",
+                    "method_input": []
+                },
+            ]
+
+        },
+    }
+
+    return f"""
+            У меня есть список модулей и их функций для выполнения:
+            {json.dumps(data, ensure_ascii=False, indent=2)}
+            Для каждого модуля и функции указаны её имя и функционал.
+Тебе нужно определить какой модуль и какую функцию модуля следует использовать для выполнения инструкции:
+ "{package.input_text}" из представленных ранее данных.
 В ответ тебе нужно написать только строку в формате json.
 Формат общения должен соответствовать следующему примеру:
 Инструкция : "включи мультик"
 Ответ:
 {{
-    "module": "plugins.plugin_player",
-    "function": "play_file",
-    "file_path": "/mooves/cartoons",
-    "file_name": "move.mp4"
+    "plagin_name": "time",
+    "methods_name": "timer_start",
+    "discription": "Запускает таймер с  указанным количеством времени",
+    "method_input": {{
+        {{"name": "Number1", "type": "integer"}},
+    }}
 }}
 В начале идет название плагина, далее название функции, и затем названия аргументов и их значения если они нужны.
 Важно: не пиши ничего кроме json в ответе. Строго только json и ничего кроме json.
-"""
+            """
 
+
+@core.on_input.register()
+async def _ask_gpt(package):
+    prompt = package.input_text
+    # prompt = get_promt(package)
+    print(prompt)
     assistant_message = await core.gpt.ask(prompt=prompt)
+    print(assistant_message)
+    await package.core.on_output(packages.TextPackage(assistant_message, package.core, packages.NULL_HOOK))
 
-    assistant_message = "{" + assistant_message.split("{")[1]
-    assistant_message = assistant_message.split("}")[0] + "}"
-    json_data = json.loads(assistant_message)
+    # assistant_message = "{" + assistant_message.split("{")[1]
+    # assistant_message = assistant_message.split("}")[0] + "}"
+    # json_data = json.loads(assistant_message)
 
-    module = json_data.pop("module")
-    function = json_data.pop("function")
+    # module = json_data.pop("module")
+    # function = json_data.pop("function")
+    #
+    # mod = sys.modules[module]
+    # func = vars(mod).get(function)
+    # if asyncio.iscoroutinefunction(func):
+    #     await func(**json_data)
+    # else:
+    #     func(**json_data)
 
-    mod = sys.modules[module]
-    func = vars(mod).get(function)
-    if asyncio.iscoroutinefunction(func):
-        await func(**json_data)
-    else:
-        func(**json_data)
+    # await package.ryn_hook()
+
 
 """У тебя есть доступ к следующим инструментам:
 [
