@@ -4,10 +4,11 @@ import os
 import sys
 
 import vosk
-
-from core import Core
 import pyaudio
 import logging
+
+from core import Core
+import packages
 
 logger = logging.getLogger("root")
 
@@ -15,6 +16,10 @@ core = Core()
 
 model_settings = {}
 input_device_id = None
+
+
+async def all_ok(package: packages.TextPackage):
+    await package.core.on_output(packages.TextPackage("Готово", package.core, packages.NULL_HOOK))
 
 
 async def run_vosk():
@@ -56,7 +61,8 @@ async def run_vosk():
             voice_input_str = recognized_data["text"]
             if voice_input_str != "" and voice_input_str is not None:
                 logger.info(f"Распознано Vosk: '{voice_input_str}'")
-                await core.on_input(core, input_str=voice_input_str, for_filter=voice_input_str)
+                package = packages.TextPackage(voice_input_str, core, all_ok)
+                await core.on_input(package=package)
 
 
 async def start(core: Core):

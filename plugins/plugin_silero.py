@@ -6,6 +6,7 @@ import time
 import sounddevice
 import torch
 
+import packages
 from core import Core
 from utils.custom_filters import levenshtein_filter
 
@@ -79,11 +80,13 @@ async def _say_silero(core: Core, output_str):
 
 
 @core.on_output.register()
-async def say_silero(core: Core, output_str, **kwargs):
-    await _say_silero(core, output_str)
+async def say_silero(package: packages.TextPackage):
+    await _say_silero(core, package.input_text)
+    if package.text:
+        await _say_silero(core, package.text)
 
 
 @core.on_input.register(levenshtein_filter("без звука", min_ratio=85))
-async def mute(core: Core, input_str, **kwargs):
+async def mute(package):
     global is_mute
     is_mute = not is_mute

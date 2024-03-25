@@ -5,6 +5,8 @@ import sys
 from magic_filter import MagicFilter
 from termcolor import cprint, colored
 import logging
+
+import packages
 from jaa import JaaCore
 
 F = MagicFilter()
@@ -31,34 +33,26 @@ class EventObserver:
     def __init__(self):
         self.callbacks = {}
 
-    async def _run_callback(self, callback, *args, **kwargs):
+    async def _run_callback(self, callback, package: None | packages.TextPackage = None):
         try:
-            await callback(*args, **kwargs)
+            await callback(package=package)
         except Exception as exc:
-            logging.exception(f'Сопрограмма вызвала исключение: {exc}')
+            logging.exception(f'Сопрограмма {callback.__module__}.{callback.__name__}() вызвала исключение: {exc}')
 
     def register(self, filt: MagicFilter = None):
         def wrapper(func: callable):
             if filt:
-                async def wrapper_(*args, **kwargs):
-                    if "for_filter" in kwargs:
-                        for_filter = kwargs.pop("for_filter")
-                    else:
-                        raise NotFoundFilerTextError
-
-                    if filt.resolve(for_filter):
+                async def wrapper_(package=None):
+                    if filt.resolve(package.for_filter):
                         asyncio.run_coroutine_threadsafe(
-                            coro=self._run_callback(func, *args, **kwargs),
+                            coro=self._run_callback(func, package=package),
                             loop=asyncio.get_event_loop()
                         )
 
             else:
-                async def wrapper_(*args, **kwargs):
-                    if "for_filter" in kwargs:
-                        kwargs.pop("for_filter")
-
+                async def wrapper_(package=None):
                     asyncio.run_coroutine_threadsafe(
-                        coro=self._run_callback(func, *args, **kwargs),
+                        coro=self._run_callback(func, package=package),
                         loop=asyncio.get_event_loop()
                     )
 
@@ -66,9 +60,9 @@ class EventObserver:
 
         return wrapper
 
-    async def __call__(self, *args, **kwargs):
+    async def __call__(self, package=None):
         for callback in self.callbacks.values():
-            await callback(*args, **kwargs)
+            await callback(package)
 
 
 class Core(JaaCore, metaclass=MetaSingleton):
