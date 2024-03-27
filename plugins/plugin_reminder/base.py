@@ -3,6 +3,7 @@ import datetime
 import peewee as pw
 
 db = pw.SqliteDatabase('notice.db')
+
 class Base(pw.Model):
     class Meta:
         database = db

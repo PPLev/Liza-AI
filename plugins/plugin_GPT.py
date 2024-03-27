@@ -35,7 +35,7 @@ class GPT:
         data = {
             "mode": "chat",
             "messages": [
-                {"role": "system", "content": context_prompt},
+                #{"role": "system", "content": context_prompt},
                 {"role": "user", "content": prompt}
             ]
         }
@@ -50,6 +50,16 @@ class GPT:
         assistant_message = response.json()['choices'][0]['message']['content']
         logger.info(f"Ответ ГПТ: {assistant_message}\n{response.json()}")
         return assistant_message
+
+    @staticmethod
+    def find_json(text):
+        try:
+            json_data_ = "{" + text.split("{")[1]
+            json_data_ = json_data_.split("}")[0] + "}"
+            json_data = json.loads(json_data_)
+            return json_data
+        except:
+            return None
 
 
 async def start(core: Core):
@@ -143,9 +153,7 @@ async def _ask_gpt(package):
 
     assistant_message = await core.gpt.ask(prompt=prompt)
 
-    assistant_message = "{" + assistant_message.split("{")[1]
-    assistant_message = assistant_message.split("}")[0] + "}"
-    json_data = json.loads(assistant_message)
+    json_data = core.gpt.find_json(assistant_message)
 
     module = json_data.pop("module")
     function = json_data.pop("function")
@@ -188,4 +196,35 @@ async def _ask_gpt(package):
   }
 }
 
+
+
+
+  fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+      "HTTP-Referer": `${YOUR_SITE_URL}`, // Optional, for including your app on openrouter.ai rankings.
+      "X-Title": `${YOUR_SITE_NAME}`, // Optional. Shows in rankings on openrouter.ai.
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      "model": "mistralai/mixtral-8x7b-instruct",
+      "messages": [
+        {"role": "user", "content": "Сформируй json из следующего запроса: "напомни завтра про магазин"
+Тебе необходимо указать следующие поля:
+value - значение
+day_before - сколько дней осталось
+time - время в которое нужно сделать действие
+
+Пример: "Напомни мне послезавтра про то что мне нужно забрать заказ из интернет магазина после работы"
+Ответ:
+{
+"value": "забрать заказ из магазина"
+"day_before": "2"
+"time": "18:45"
+}
+В ответе можно указывать только json!"},
+      ],
+    })
+  });
 """

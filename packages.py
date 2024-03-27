@@ -7,9 +7,12 @@ class BasePackage:
         self.core = core
         self.hook = hook
         self.data = {}
+        self.completed = False
 
     async def run_hook(self):
-        await self.hook(self)
+        if not self.completed:
+            await self.hook(self)
+            self.completed = True
 
 
 class TextPackage(BasePackage):
@@ -68,6 +71,8 @@ class HookExtendPackage(BasePackage):
             raise TypeError(f".post_hook must be callable, got {type(value)}")
 
     async def run_hook(self):
-        await self.pre_hook(self)
-        await self.hook(self)
-        await self.post_hook(self)
+        if not self.completed:
+            await self.pre_hook(self)
+            await self.hook(self)
+            await self.post_hook(self)
+            self.completed = True

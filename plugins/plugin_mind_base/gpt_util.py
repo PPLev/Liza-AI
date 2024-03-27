@@ -1,46 +1,20 @@
 import os
 import json
 
-import openai
+from core import Core, F
 
-openai.api_key = os.getenv("OPENAI_TOKEN")
-
-# Если используете прокси для доступа к openai -
-# раскоментируйте следующую строку и отредактируйте в соответствии своими данными
-# openai.api_base = f"http://127.0.0.1:5000"
-
-prompts = {}
-with open("prompts.json", "r", encoding="utf-8") as file:
-    prompts = json.load(file)
+core = Core()
 
 
-def ask_gpt(context):
+@core.on_input.register(F.startswith("запомни"))
+async def in_notise(package):
+    prompt = f"""
+Тебе надо сформировать единицу знания из следующего запроса: "{package.input_text}"
+
+Пример: "запомни что я положил ручку на стол"
+Ответ: "Ручка лежит на столе"
     """
-    Выполняет запрос по апи к ChatGPT
-    """
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=context,
-        max_tokens=256,
-        temperature=0.6,
-        top_p=1,
-        stop=None
-    )
 
-    for choice in response.choices:
-        if "text" in choice:
-            return choice.text
-
-    return response.choices[0].message.content
-
-
-def chat_gpt_query(input_str):
-    """ Выполняет запрос заданного текста к CHATGPT """
-
-    dialog_data = [
-        {"role": "system", "content": prompts["start_prompt"]},
-        {"role": "user", "content": input_str}
-    ]
-    raw_response = ask_gpt(dialog_data)
-
-    return raw_response
+    answer = await core.gpt.ask(prompt)
+    print(answer)
+    # TODO: Изменить: добавить выбор папки и все упаковать в json + сделать метод в бд
