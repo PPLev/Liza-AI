@@ -1,3 +1,5 @@
+import asyncio
+
 import packages
 from core import Core, F
 import datetime
@@ -6,9 +8,6 @@ from .base import Notice
 core = Core()
 
 
-# @core.on_input.register(F.contains("напомни"))
-# @core.on_input.register(F.contains("запомни"))
-# @core.on_input.register(F.contains("запиши"))
 @core.on_input.register(F.func(lambda t: any([i in t for i in ["напомни", "запомни", "запиши"]])))
 async def new_notice(package: packages.TextPackage):
     now = datetime.datetime.now()
@@ -45,3 +44,28 @@ time - время в которое нужно сделать действие
         package.text = f"Создана заметка с айди {notice.id}"
 
         await package.run_hook()
+
+
+class Reminder:
+    def __init__(self, core: Core, loop_timer: int = None, observer_name: str = None):
+        self.core = core
+        self.loop_timer = loop_timer or 60 * 30
+        self.observer_name = observer_name or "on_input"
+        self._is_loop_run = False
+
+    async def loop(self):
+        self._is_loop_run = True
+        while True:
+            if not self._is_loop_run:
+                return
+
+            # TODO: Делаем опрос бд и шлем ивенты
+
+            await asyncio.sleep(self.loop_timer)
+
+    async def start_loop(self):
+        if not self._is_loop_run:
+            asyncio.run_coroutine_threadsafe(coro=self.loop(), loop=asyncio.get_event_loop())
+
+    async def stop_loop(self):
+        self._is_loop_run = False
