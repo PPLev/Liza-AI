@@ -60,6 +60,11 @@ class Reminder:
                 return
 
             # TODO: Делаем опрос бд и шлем ивенты
+            # настройка "дальности" опроса
+            # настройка времени оповещения
+            #
+            #
+            #
 
             await asyncio.sleep(self.loop_timer)
 

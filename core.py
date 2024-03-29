@@ -41,6 +41,9 @@ class EventObserver:
 
     def register(self, filt: MagicFilter = None):
         def wrapper(func: callable):
+            if not asyncio.iscoroutinefunction(func):
+                raise ValueError("function needs to be async which takes one parameter")
+
             if filt:
                 async def wrapper_(package=None):
                     if filt.resolve(package.for_filter):
@@ -73,7 +76,8 @@ class Core(JaaCore, metaclass=MetaSingleton):
             self.add_observer(observer)
 
     def add_observer(self, observer_name):
-        setattr(self, observer_name, EventObserver())
+        if not hasattr(self, observer_name):
+            setattr(self, observer_name, EventObserver())
 
     @staticmethod
     async def start_loop():
