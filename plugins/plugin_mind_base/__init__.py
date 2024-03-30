@@ -1,13 +1,12 @@
-from core import Core, F
-from .utils import *
-core = Core()
-from .base import Notice
+from core import Core
+from .gpt_util import *
 
+core = Core()
 
 
 async def start(core: Core):
     manifest = {
-        "name": "Плагин заметок",
+        "name": "Плагин знаний",
         "version": "1.0",
 
         "default_options": {},
@@ -16,4 +15,4 @@ async def start(core: Core):
 
 
 async def start_with_options(core: Core, manifest: dict):
-    print("reminder!!!!!!!!!!!!!!!!!!!!!!")
+    raise Exception("Пока не доделан - сорян)")

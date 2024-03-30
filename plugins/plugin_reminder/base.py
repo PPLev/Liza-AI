@@ -3,6 +3,8 @@ import datetime
 import peewee as pw
 
 db = pw.SqliteDatabase('notice.db')
+
+
 class Base(pw.Model):
     class Meta:
         database = db
@@ -13,7 +15,6 @@ class Notice(Base):
     value = pw.TextField(null=True)
     create_date = pw.DateTimeField(default=datetime.datetime.now)
     remind_date = pw.DateTimeField(null=True)
-
 
     @staticmethod
     def get_next_day_notice():
